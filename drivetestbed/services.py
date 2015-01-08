@@ -29,13 +29,13 @@ class FilesService(object):
         self._files = {}
 
     def _list(self, **kwargs):
-        empty_response = {
+        response = {
             "kind": "drive#fileList",
             "etag": "\"ALmZNavQ1pakoTwofyfJ4wBG6iY/vyGp6PvFo4RvsFtPoIWeCReyIC8\"",
             "selfLink": "https://www.googleapis.com/drive/v2/files?q=trashed+%3D+false",
-            "items": []
+            "items": self._files.values()
         }
-        return empty_response
+        return response
 
     def list(self, **kwargs):
         return ServiceCall(self._list, **kwargs)
@@ -90,11 +90,14 @@ class ServiceDirectory(object):
         return self._files
 
 
-THE_SERVICE = ServiceDirectory()
-
-
 class ServiceStub(object):
+
+    # TODO -- add something to create a fixture service with pre-set files, etc.
 
     @classmethod
     def get_service(cls):
-        return THE_SERVICE
+        '''
+        This creates a new empty service every time
+        :return:
+        '''
+        return ServiceDirectory()

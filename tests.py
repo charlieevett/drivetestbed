@@ -2,12 +2,14 @@ from apiclient.errors import HttpError
 from drivetestbed.services import ServiceStub
 import pytest
 
+
 class TestServiceDirectory(object):
 
     def test_file_service_create(self):
         service = ServiceStub.get_service()
         files = service.files()
         assert files
+
 
 @pytest.fixture
 def service():
@@ -39,6 +41,20 @@ class TestFilesService(object):
         # now see if you can get the file again
         response = service.files().get(fileId=response['id'])
         assert response
+
+    def test_list_after_insert(self, service):
+        body = {
+            'title': "test",
+            'description': "test description",
+            'mimeType': 'text/plain'
+        }
+        insert_response = service.files().insert(body=body).execute()
+
+        response = service.files().list().execute()
+        assert response
+        assert 'items' in response
+        assert len(response['items']) == 1
+        assert response['items'][0]['id'] == insert_response['id']
 
     def test_404_get(self, service):
         with pytest.raises(HttpError):
