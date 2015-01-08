@@ -8,11 +8,12 @@ __author__ = 'charlie'
 
 class ServiceCall(object):
 
-    def __init__(self, response):
-        self._response = response
+    def __init__(self, meth, **kwargs):
+        self._callable = meth
+        self._kwargs = kwargs
 
     def execute(self):
-        return self._response
+        return self._callable(**self._kwargs)
 
 
 # From Stack Overflow: http://stackoverflow.com/questions/534839/how-to-create-a-guid-in-python
@@ -27,17 +28,19 @@ class FilesService(object):
     def __init__(self):
         self._files = {}
 
-    def list(self, **kwargs):
+    def _list(self, **kwargs):
         empty_response = {
-             "kind": "drive#fileList",
-             "etag": "\"ALmZNavQ1pakoTwofyfJ4wBG6iY/vyGp6PvFo4RvsFtPoIWeCReyIC8\"",
-             "selfLink": "https://www.googleapis.com/drive/v2/files?q=trashed+%3D+false",
-             "items": [
-             ]
+            "kind": "drive#fileList",
+            "etag": "\"ALmZNavQ1pakoTwofyfJ4wBG6iY/vyGp6PvFo4RvsFtPoIWeCReyIC8\"",
+            "selfLink": "https://www.googleapis.com/drive/v2/files?q=trashed+%3D+false",
+            "items": []
         }
-        return ServiceCall(empty_response)
+        return empty_response
 
-    def insert(self, body=None, **kwargs):
+    def list(self, **kwargs):
+        return ServiceCall(self._list, **kwargs)
+
+    def _insert(self, body=None, **kwargs):
         # todo -- handle error for body
         response = {
             "kind": "drive#file",
@@ -47,15 +50,35 @@ class FilesService(object):
         }
         response['id'] = get_a_uuid()
         self._files[response['id']] = response
-        return ServiceCall(response)
+        return response
 
-    def get(self, fileId=None, **kwargs):
+    def insert(self, **kwargs):
+        return ServiceCall(self._insert, **kwargs)
+
+    def _get(self, fileId=None, **kwargs):
         file = self._files.get(fileId)
         if file:
-            return ServiceCall(file)
+            return file
         else:
-            resp = Response({"status": 401, "reason": "File not found"})
-            raise HttpError(resp, "File not found")
+            resp = Response({"status": 404, "reason": "Not Found"})
+            raise HttpError(resp,
+                            '''
+                            {
+                             "error": {
+                              "errors": [
+                               {
+                                "domain": "global",
+                                "reason": "notFound",
+                                "message": "File not found: %(fileId)s"
+                               }
+                              ],
+                              "code": 404,
+                              "message": "File not found: %(fileId)s"
+                             }
+                            }''' % {"fileId": fileId})
+
+    def get(self, fileId=None, **kwargs):
+        return ServiceCall(self._get, **kwargs)
 
 
 class ServiceDirectory(object):
