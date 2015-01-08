@@ -110,13 +110,21 @@ class FilesService(object):
         return ServiceCall(self._copy, fileId=fileId, **kwargs)
 
 
+class PermissionsService(object):
+    pass
+
+
 class ServiceDirectory(object):
 
     def __init__(self, files=None):
         self._files = FilesService(files=files)
+        self._permissions = PermissionsService()
 
     def files(self):
         return self._files
+
+    def permissions(self):
+        return self._permissions
 
 
 class ServiceStub(object):

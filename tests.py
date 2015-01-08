@@ -96,3 +96,7 @@ class TestFilesService(object):
             response = service.files().copy(fileId=ONE_FILE_ID, body=copied_file).execute()
 
 
+class TestPermissionsService(object):
+
+    def test_get_permissions_stub(self, service):
+        assert service.permissions()
