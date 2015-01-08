@@ -16,6 +16,7 @@ class ServiceCall(object):
         return self._callable(**self._kwargs)
 
 
+
 # From Stack Overflow: http://stackoverflow.com/questions/534839/how-to-create-a-guid-in-python
 # get a UUID - URL safe, Base64
 def get_a_uuid():
@@ -29,7 +30,8 @@ class FilesService(object):
         self._files = {}
         files = files or []
         for afile in files:
-            afile['id'] = get_a_uuid()
+            if 'id' not in afile:
+                afile['id'] = get_a_uuid()
             self._files[afile['id']] = afile
 
     def _list(self, **kwargs):
@@ -62,20 +64,20 @@ class FilesService(object):
     def raise_404(self, fileId):
         resp = Response({"status": 404, "reason": "Not Found"})
         raise HttpError(resp,
-                            '''
-                            {
-                             "error": {
-                              "errors": [
-                               {
-                                "domain": "global",
-                                "reason": "notFound",
-                                "message": "File not found: %(fileId)s"
-                               }
-                              ],
-                              "code": 404,
-                              "message": "File not found: %(fileId)s"
-                             }
-                            }''' % {"fileId": fileId})
+                        '''
+                        {
+                         "error": {
+                          "errors": [
+                           {
+                            "domain": "global",
+                            "reason": "notFound",
+                            "message": "File not found: %(fileId)s"
+                           }
+                          ],
+                          "code": 404,
+                          "message": "File not found: %(fileId)s"
+                         }
+                        }''' % {"fileId": fileId})
 
     def _get(self, fileId=None, **kwargs):
         file = self._files.get(fileId)
@@ -95,6 +97,18 @@ class FilesService(object):
 
     def delete(self, fileId=None, **kwargs):
         return ServiceCall(self._delete, fileId=fileId, **kwargs)
+
+    def _copy(self, fileId=None, body=None, **kwargs):
+        if fileId not in self._files:
+            self.raise_404(fileId)
+        file_copy = self._files[fileId].copy()
+        if body:
+            for key in body.keys():
+                file_copy[key] = body[key]
+        return self._insert(body=file_copy)
+
+    def copy(self, fileId=None, **kwargs):
+        return ServiceCall(self._copy, fileId=fileId, **kwargs)
 
 
 class ServiceDirectory(object):

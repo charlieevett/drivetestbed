@@ -15,12 +15,17 @@ class TestServiceDirectory(object):
 def service():
     return ServiceStub.get_service()
 
+
+ONE_FILE_ID = "ONE_TEST_FILE"
+
+
 @pytest.fixture
 def one_file_service():
     test_file = {
             'title': "test",
             'description': "test description",
-            'mimeType': 'text/plain'
+            'mimeType': 'text/plain',
+            'id': ONE_FILE_ID
         }
     return ServiceStub.get_service(files=[test_file])
 
@@ -70,14 +75,24 @@ class TestFilesService(object):
             response = service.files().get(fileId="fred").execute()
 
     def test_delete(self, one_file_service):
-        files = one_file_service.files().list().execute()
-        file_id = files['items'][0]['id']
-        response = one_file_service.files().delete(fileId=file_id).execute()
+        response = one_file_service.files().delete(fileId=ONE_FILE_ID).execute()
         assert response is not None
         # file should be gone now
         list_response = one_file_service.files().list().execute()
         assert not list_response['items']
 
+    def test_copy(self, one_file_service):
+        copied_file = {'title': "A copied test file"}
+        response = one_file_service.files().copy(fileId=ONE_FILE_ID, body=copied_file).execute()
+        assert response
+        assert response.get('title') == copied_file['title']
+        # should have two files now
+        list_response = one_file_service.files().list().execute()
+        assert len(list_response['items']) == 2
 
+    def test_404_copy(self, service):
+        copied_file = {'title': "A copied test file"}
+        with pytest.raises(HttpError):
+            response = service.files().copy(fileId=ONE_FILE_ID, body=copied_file).execute()
 
 
