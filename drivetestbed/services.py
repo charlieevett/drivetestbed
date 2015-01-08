@@ -16,7 +16,6 @@ class ServiceCall(object):
         return self._callable(**self._kwargs)
 
 
-
 # From Stack Overflow: http://stackoverflow.com/questions/534839/how-to-create-a-guid-in-python
 # get a UUID - URL safe, Base64
 def get_a_uuid():
