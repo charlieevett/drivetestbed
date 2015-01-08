@@ -25,8 +25,12 @@ def get_a_uuid():
 
 class FilesService(object):
 
-    def __init__(self):
+    def __init__(self, files=None):
         self._files = {}
+        files = files or []
+        for afile in files:
+            afile['id'] = get_a_uuid()
+            self._files[afile['id']] = afile
 
     def _list(self, **kwargs):
         response = {
@@ -55,13 +59,9 @@ class FilesService(object):
     def insert(self, **kwargs):
         return ServiceCall(self._insert, **kwargs)
 
-    def _get(self, fileId=None, **kwargs):
-        file = self._files.get(fileId)
-        if file:
-            return file
-        else:
-            resp = Response({"status": 404, "reason": "Not Found"})
-            raise HttpError(resp,
+    def raise_404(self, fileId):
+        resp = Response({"status": 404, "reason": "Not Found"})
+        raise HttpError(resp,
                             '''
                             {
                              "error": {
@@ -77,14 +77,30 @@ class FilesService(object):
                              }
                             }''' % {"fileId": fileId})
 
+    def _get(self, fileId=None, **kwargs):
+        file = self._files.get(fileId)
+        if file:
+            return file
+        else:
+            self.raise_404(fileId)
+
     def get(self, fileId=None, **kwargs):
         return ServiceCall(self._get, **kwargs)
+
+    def _delete(self, fileId=None, **kwargs):
+        if fileId not in self._files:
+            self.raise_404(fileId)
+        del self._files[fileId]
+        return {}
+
+    def delete(self, fileId=None, **kwargs):
+        return ServiceCall(self._delete, fileId=fileId, **kwargs)
 
 
 class ServiceDirectory(object):
 
-    def __init__(self):
-        self._files = FilesService()
+    def __init__(self, files=None):
+        self._files = FilesService(files=files)
 
     def files(self):
         return self._files
@@ -95,9 +111,9 @@ class ServiceStub(object):
     # TODO -- add something to create a fixture service with pre-set files, etc.
 
     @classmethod
-    def get_service(cls):
+    def get_service(cls, files=None):
         '''
         This creates a new empty service every time
         :return:
         '''
-        return ServiceDirectory()
+        return ServiceDirectory(files=files)
