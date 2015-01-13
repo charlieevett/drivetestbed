@@ -100,3 +100,33 @@ class TestPermissionsService(object):
 
     def test_get_permissions_stub(self, service):
         assert service.permissions()
+
+    def test_file_404_get(self, service):
+        with pytest.raises(HttpError):
+            response = service.permissions().get(fileId="fred", permissionId="fred").execute()
+
+    def test_perm_404_get(self, one_file_service):
+        with pytest.raises(HttpError):
+            response = one_file_service.permissions().get(fileId=ONE_FILE_ID, permissionId="fred").execute()
+
+    def test_default_permissions_list(self, one_file_service):
+        response = one_file_service.permissions().list(fileId=ONE_FILE_ID).execute()
+        assert response
+        assert 'items' in response
+        assert len(response['items']) == 1
+        assert 'etag' in response
+        assert response.get('kind') == 'drive#permissionList'
+
+class TestFilesAndPermissions(object):
+
+    def test_insert_file_owner_permission(self, service):
+        body = {
+            'title': "test",
+            'description': "test description",
+            'mimeType': 'text/plain'
+        }
+        response = service.files().insert(body=body).execute()
+        # now look for the permissions
+        perms = service.permissions().list(fileId=response["id"]).execute()
+        assert len(perms['items']) == 1
+

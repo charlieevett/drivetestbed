@@ -23,15 +23,37 @@ def get_a_uuid():
     return r_uuid.replace('=', '')
 
 
+def raise_404(fileId, msg=None):
+    if not msg:
+        msg = "File not found: %s" % fileId
+    resp = Response({"status": 404, "reason": "Not Found"})
+    raise HttpError(resp,
+                    '''
+                    {
+                     "error": {
+                      "errors": [
+                       {
+                        "domain": "global",
+                        "reason": "notFound",
+                        "message": "%(msg)s"
+                       }
+                      ],
+                      "code": 404,
+                      "message": "%(msg)s"
+                     }
+                    }''' % {"msg": msg})
+
+
 class FilesService(object):
 
-    def __init__(self, files=None):
+    def __init__(self, files=None, directory=None):
         self._files = {}
         files = files or []
         for afile in files:
             if 'id' not in afile:
                 afile['id'] = get_a_uuid()
             self._files[afile['id']] = afile
+        self._directory = directory
 
     def _list(self, **kwargs):
         response = {
@@ -55,42 +77,25 @@ class FilesService(object):
         }
         response['id'] = get_a_uuid()
         self._files[response['id']] = response
+        self._directory.permissions()._set_default_permissions(response)
         return response
 
     def insert(self, **kwargs):
         return ServiceCall(self._insert, **kwargs)
-
-    def raise_404(self, fileId):
-        resp = Response({"status": 404, "reason": "Not Found"})
-        raise HttpError(resp,
-                        '''
-                        {
-                         "error": {
-                          "errors": [
-                           {
-                            "domain": "global",
-                            "reason": "notFound",
-                            "message": "File not found: %(fileId)s"
-                           }
-                          ],
-                          "code": 404,
-                          "message": "File not found: %(fileId)s"
-                         }
-                        }''' % {"fileId": fileId})
 
     def _get(self, fileId=None, **kwargs):
         file = self._files.get(fileId)
         if file:
             return file
         else:
-            self.raise_404(fileId)
+            raise_404(fileId)
 
     def get(self, fileId=None, **kwargs):
         return ServiceCall(self._get, **kwargs)
 
     def _delete(self, fileId=None, **kwargs):
         if fileId not in self._files:
-            self.raise_404(fileId)
+            raise_404(fileId)
         del self._files[fileId]
         return {}
 
@@ -99,7 +104,7 @@ class FilesService(object):
 
     def _copy(self, fileId=None, body=None, **kwargs):
         if fileId not in self._files:
-            self.raise_404(fileId)
+            raise_404(fileId)
         file_copy = self._files[fileId].copy()
         if body:
             for key in body.keys():
@@ -111,14 +116,61 @@ class FilesService(object):
 
 
 class PermissionsService(object):
-    pass
+
+    def __init__(self, files=None, directory=None):
+        self._directory = directory
+        self._permissions = {}
+        files = files or []
+        for afile in files:
+            self._set_default_permissions(afile)
+
+    def _set_default_permissions(self, afile):
+        # TODO -- create scheme to set up current user
+        default_perms = [
+            {
+               "kind": "drive#permission",
+               "etag": "Lie3Y624-6bAlCGsnUSYyb6P-dU/k6w2imYTYLSrsTHqeiu6HpWiCVQ",
+               "id": "11519106257625907838",
+               "name": "Test User",
+               "emailAddress": "test@testers.com",
+               "domain": "testers.com",
+               "role": "owner",
+               "type": "user",
+            }
+        ]
+        self._permissions[afile['id']] = default_perms
+
+    def _get(self, fileId=None, permissionId=None, **kwargs):
+        if fileId not in self._permissions:
+            raise_404(fileId)
+        perms = self._permissions[fileId]
+        for permission in perms:
+            if permission['id'] == permissionId:
+                return permission
+        raise_404(fileId, msg="Permission not found: %s" % permissionId)
+
+    def get(self, fileId=None, **kwargs):
+        return ServiceCall(self._get, fileId=fileId, **kwargs)
+
+    def _list(self, fileId=None, **kwargs):
+        if fileId not in self._permissions:
+            raise_404(fileId)
+        response = {
+            "kind": "drive#permissionList",
+            "etag": "AFakeETag",
+            "items": self._permissions[fileId]
+        }
+        return response
+
+    def list(self, fileId=None, **kwargs):
+        return ServiceCall(self._list, fileId=fileId, **kwargs)
 
 
 class ServiceDirectory(object):
 
     def __init__(self, files=None):
-        self._files = FilesService(files=files)
-        self._permissions = PermissionsService()
+        self._files = FilesService(files=files, directory=self)
+        self._permissions = PermissionsService(files=files, directory=self)
 
     def files(self):
         return self._files
