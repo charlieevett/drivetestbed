@@ -131,3 +131,70 @@ class TestFilesAndPermissions(object):
         perms = service.permissions().list(fileId=response["id"]).execute()
         assert len(perms['items']) == 1
 
+
+class TestParentsService(object):
+    def test_get_parents_stub(self, service):
+        assert service.parents()
+
+    def test_insert_file_default_parents(self, service):
+        body = {
+            'title': "test",
+            'description': "test description",
+            'mimeType': 'text/plain'
+        }
+        response = service.files().insert(body=body).execute()
+        # now look for the parents
+        perms = service.parents().list(fileId=response["id"]).execute()
+        assert len(perms['items']) == 1
+
+    def test_insert_into_folder(self, one_file_service):
+        # make a folder
+        body = {
+            'title': "test folder",
+            'description': "test description",
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+        response = one_file_service.files().insert(body=body).execute()
+        insert_body = {
+            'id': response['id']
+        }
+        response = one_file_service.parents().insert(fileId=ONE_FILE_ID, body=insert_body).execute()
+        # now see that list has the new one
+        perms = one_file_service.parents().list(fileId=ONE_FILE_ID).execute()
+        assert len(perms['items']) == 2
+
+    def test_insert_twice_into_folder(self, one_file_service):
+        # make a folder
+        body = {
+            'title': "test folder",
+            'description': "test description",
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+        response = one_file_service.files().insert(body=body).execute()
+        insert_body = {
+            'id': response['id']
+        }
+        # call it twice and still should have only one
+        response = one_file_service.parents().insert(fileId=ONE_FILE_ID, body=insert_body).execute()
+        response = one_file_service.parents().insert(fileId=ONE_FILE_ID, body=insert_body).execute()
+        # now see that list has the new one
+        perms = one_file_service.parents().list(fileId=ONE_FILE_ID).execute()
+        assert len(perms['items']) == 2
+
+    def test_insert_and_delete_into_folder(self, one_file_service):
+        # make a folder
+        body = {
+            'title': "test folder",
+            'description': "test description",
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+        response = one_file_service.files().insert(body=body).execute()
+        insert_body = {
+            'id': response['id']
+        }
+        response = one_file_service.parents().insert(fileId=ONE_FILE_ID, body=insert_body).execute()
+        one_file_service.parents().delete(fileId=ONE_FILE_ID, parentId=response['id']).execute()
+        # now see that list has the new one
+        perms = one_file_service.parents().list(fileId=ONE_FILE_ID).execute()
+        assert len(perms['items']) == 1
+

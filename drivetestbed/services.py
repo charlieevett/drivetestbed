@@ -78,6 +78,7 @@ class FilesService(object):
         response['id'] = get_a_uuid()
         self._files[response['id']] = response
         self._directory.permissions()._set_default_permissions(response)
+        self._directory.parents()._set_default_parent(response)
         return response
 
     def insert(self, **kwargs):
@@ -166,18 +167,91 @@ class PermissionsService(object):
         return ServiceCall(self._list, fileId=fileId, **kwargs)
 
 
+class ParentsService(object):
+
+    def __init__(self, files=None, directory=None):
+        # TODO -- add a way to pass in parent fixtures
+        self._directory = directory
+        self._parents = {}
+        files = files or []
+        for afile in files:
+            self._set_default_parent(afile)
+
+    def _set_default_parent(self, a_file):
+        default_parents = {
+           "kind": "drive#parentReference",
+           "id": "ROOT_FOLDER_ID",
+           "selfLink": "https://www.googleapis.com/drive/v2/files/%(fileId)s/parents/ROOT_FOLDER_ID" %
+                       {'fileId': a_file['id']},
+           "parentLink": "https://www.googleapis.com/drive/v2/files/ROOT_FOLDER_ID",
+           "isRoot": True
+          }
+        self._parents[a_file['id']] = [default_parents]
+
+    def _list(self, fileId=None, **kwargs):
+        if fileId not in self._parents:
+            raise_404(fileId)
+        response = {
+             "kind": "drive#parentList",
+            "items": self._parents[fileId]
+        }
+        return response
+
+    def list(self, fileId=None, **kwargs):
+        return ServiceCall(self._list, fileId=fileId, **kwargs)
+
+    def _insert(self, fileId=None, body=None, **kwargs):
+        if fileId not in self._parents:
+            raise_404(fileId)
+        # don't add something twice
+        for parent in self._parents[fileId]:
+            if parent['id'] == body['id']:
+                return parent
+
+        parent_data = {
+           "kind": "drive#parentReference",
+           "id": body['id'],
+           "selfLink": "https://www.googleapis.com/drive/v2/files/%(fileId)s/parents/%(parentId)s" %
+                       {'fileId': fileId, 'parentId': body['id']},
+           "parentLink": "https://www.googleapis.com/drive/v2/files/%s" % body['id'],
+           "isRoot": False
+        }
+        self._parents[fileId].append(parent_data)
+        return parent_data
+
+    def insert(self, fileId=None, body=None, **kwargs):
+        return ServiceCall(self._insert, fileId=fileId, body=body, **kwargs)
+
+    def _delete(self, fileId=None, parentId=None, **kwargs):
+        if fileId not in self._parents:
+            raise_404(fileId)
+        parents = self._parents[fileId]
+        for parent in parents:
+            if parent['id'] == parentId:
+                parents.remove(parent)
+                break
+        return {}
+
+    def delete(self, fileId=None, parentId=None, **kwargs):
+        return ServiceCall(self._delete, fileId=fileId, parentId=parentId, **kwargs)
+
+
 class ServiceDirectory(object):
 
     def __init__(self, files=None, user_email="test@drivetestbed.org"):
         self._user_email = user_email
         self._files = FilesService(files=files, directory=self)
         self._permissions = PermissionsService(files=files, directory=self)
+        self._parents = ParentsService(files=files, directory=self)
 
     def files(self):
         return self._files
 
     def permissions(self):
         return self._permissions
+
+    def parents(self):
+        return self._parents
 
 
 class ServiceStub(object):
