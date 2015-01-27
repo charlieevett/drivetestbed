@@ -117,6 +117,7 @@ class TestPermissionsService(object):
         assert 'etag' in response
         assert response.get('kind') == 'drive#permissionList'
 
+
 class TestFilesAndPermissions(object):
 
     def test_insert_file_owner_permission(self, service):

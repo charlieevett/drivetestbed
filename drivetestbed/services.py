@@ -46,7 +46,7 @@ def raise_404(fileId, msg=None):
 
 class FilesService(object):
 
-    def __init__(self, files=None, directory=None):
+    def __init__(self, files=None, directory=None, user_email="test@gmail.com"):
         self._files = {}
         files = files or []
         for afile in files:
@@ -132,7 +132,7 @@ class PermissionsService(object):
                "etag": "Lie3Y624-6bAlCGsnUSYyb6P-dU/k6w2imYTYLSrsTHqeiu6HpWiCVQ",
                "id": "11519106257625907838",
                "name": "Test User",
-               "emailAddress": "test@testers.com",
+               "emailAddress": self._directory._user_email,
                "domain": "testers.com",
                "role": "owner",
                "type": "user",
@@ -168,7 +168,8 @@ class PermissionsService(object):
 
 class ServiceDirectory(object):
 
-    def __init__(self, files=None):
+    def __init__(self, files=None, user_email="test@drivetestbed.org"):
+        self._user_email = user_email
         self._files = FilesService(files=files, directory=self)
         self._permissions = PermissionsService(files=files, directory=self)
 
