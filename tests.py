@@ -117,6 +117,12 @@ class TestPermissionsService(object):
         assert 'etag' in response
         assert response.get('kind') == 'drive#permissionList'
 
+    def test_get_id_for_email(self, service):
+        response = service.permissions().getIdForEmail(email="fred@gmail.com").execute()
+        assert response
+        assert response['kind'] == "drive#permissionId"
+        assert response['id']
+
 
 class TestFilesAndPermissions(object):
 
@@ -197,4 +203,3 @@ class TestParentsService(object):
         # now see that list has the new one
         perms = one_file_service.parents().list(fileId=ONE_FILE_ID).execute()
         assert len(perms['items']) == 1
-

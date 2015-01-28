@@ -166,6 +166,15 @@ class PermissionsService(object):
     def list(self, fileId=None, **kwargs):
         return ServiceCall(self._list, fileId=fileId, **kwargs)
 
+    def _getIdForEmail(self, email=None, **kwargs):
+        response = {
+            "kind": "drive#permissionId",
+            "id": str(hash(email))
+        }
+        return response
+
+    def getIdForEmail(self, email=None, **kwargs):
+        return ServiceCall(self._getIdForEmail, email=email, **kwargs)
 
 class ParentsService(object):
 
