@@ -166,6 +166,26 @@ class PermissionsService(object):
     def list(self, fileId=None, **kwargs):
         return ServiceCall(self._list, fileId=fileId, **kwargs)
 
+    def _insert(self, fileId=None, body=None, **kwargs):
+        if fileId not in self._permissions:
+            raise_404(fileId)
+        perm = {
+               "kind": "drive#permission",
+               "etag": "Lie3Y624-6bAlCGsnUSYyb6P-dU/k6w2imYTYLSrsTHqeiu6HpWiCVQ",
+               "id": get_a_uuid(),
+               "name": "Test User",
+               "emailAddress": self._directory._user_email,
+               "domain": "testers.com",
+               "role": "owner",
+               "type": "user",
+            }
+
+        self._permissions[fileId].append(perm)
+        return perm
+
+    def insert(self, fileId=None, body=None, **kwargs):
+        return ServiceCall(self._insert, fileId=fileId, body=body, **kwargs)
+
 
 class ParentsService(object):
 

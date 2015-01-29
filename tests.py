@@ -117,6 +117,17 @@ class TestPermissionsService(object):
         assert 'etag' in response
         assert response.get('kind') == 'drive#permissionList'
 
+    def test_insert_permission(self, one_file_service):
+        new_permission = {
+            'value': 'test_reader@drivetestbed.org',
+            'type': 'user',
+            'role': 'reader'
+        }
+        response = one_file_service.permissions().insert(fileId=ONE_FILE_ID, body=new_permission).execute()
+        assert response.get('kind') == 'drive#permission'
+        response = one_file_service.permissions().list(fileId=ONE_FILE_ID).execute()
+        assert len(response['items']) == 2
+
 
 class TestFilesAndPermissions(object):
 
