@@ -1,10 +1,10 @@
 from apiclient.errors import HttpError
+from apiclient.discovery import build
 from drivetestbed.services import ServiceStub
 import pytest
 
 
 class TestServiceDirectory(object):
-
     def test_file_service_create(self):
         service = ServiceStub.get_service()
         files = service.files()
@@ -22,16 +22,15 @@ ONE_FILE_ID = "ONE_TEST_FILE"
 @pytest.fixture
 def one_file_service():
     test_file = {
-            'title': "test",
-            'description': "test description",
-            'mimeType': 'text/plain',
-            'id': ONE_FILE_ID
-        }
+        'title': "test",
+        'description': "test description",
+        'mimeType': 'text/plain',
+        'id': ONE_FILE_ID
+    }
     return ServiceStub.get_service(files=[test_file])
 
 
 class TestFilesService(object):
-
     def test_empty_files_list(self, service):
         response = service.files().list().execute()
         assert response
@@ -97,7 +96,6 @@ class TestFilesService(object):
 
 
 class TestPermissionsService(object):
-
     def test_get_permissions_stub(self, service):
         assert service.permissions()
 
@@ -136,7 +134,6 @@ class TestPermissionsService(object):
 
 
 class TestFilesAndPermissions(object):
-
     def test_insert_file_owner_permission(self, service):
         body = {
             'title': "test",
@@ -214,3 +211,29 @@ class TestParentsService(object):
         # now see that list has the new one
         perms = one_file_service.parents().list(fileId=ONE_FILE_ID).execute()
         assert len(perms['items']) == 1
+
+
+class TestClientCall(object):
+
+    def test_drive_build(self):
+        from oauth2client import client
+        import webbrowser
+        import httplib2
+        from apiclient import discovery
+
+        flow = client.flow_from_clientsecrets(
+            'client.json',
+            scope='https://www.googleapis.com/auth/drive.metadata.readonly',
+            redirect_uri='urn:ietf:wg:oauth:2.0:oob')
+        auth_uri = flow.step1_get_authorize_url()
+        webbrowser.open(auth_uri)
+
+        auth_code = raw_input('Enter the auth code: ')
+
+        credentials = flow.step2_exchange(auth_code)
+        http_auth = credentials.authorize(httplib2.Http())
+
+        drive_service = discovery.build('drive', 'v2', http_auth)
+        files = drive_service.files().list().execute()
+        for f in files['items']:
+            print f['title']
