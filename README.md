@@ -14,7 +14,7 @@ Currently the following services are at some stage of support:
 
 * Files
 * Permissions
-* Children
+* Parents
 
 ## Integrating into your tests
 
