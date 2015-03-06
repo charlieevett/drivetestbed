@@ -48,7 +48,6 @@ class FilesService(object):
 
     def __init__(self, files=None, directory=None, user_email="test@gmail.com"):
         self._files = {}
-        self.path = "files"
         files = files or []
         for afile in files:
             if 'id' not in afile:
@@ -56,7 +55,11 @@ class FilesService(object):
             self._files[afile['id']] = afile
         self._directory = directory
 
-    def _list(self, **kwargs):
+    @property
+    def path(self):
+        return "files"
+
+    def list(self, **kwargs):
         response = {
             "kind": "drive#fileList",
             "etag": "\"ALmZNavQ1pakoTwofyfJ4wBG6iY/vyGp6PvFo4RvsFtPoIWeCReyIC8\"",
@@ -65,10 +68,7 @@ class FilesService(object):
         }
         return response
 
-    def list(self, **kwargs):
-        return ServiceCall(self._list, **kwargs)
-
-    def _insert(self, body=None, **kwargs):
+    def insert(self, body=None, **kwargs):
         # todo -- handle error for body
         response = {
             "kind": "drive#file",
@@ -82,39 +82,27 @@ class FilesService(object):
         self._directory.parents()._set_default_parent(response)
         return response
 
-    def insert(self, **kwargs):
-        return ServiceCall(self._insert, **kwargs)
-
-    def _get(self, fileId=None, **kwargs):
+    def get(self, fileId=None, **kwargs):
         file = self._files.get(fileId)
         if file:
             return file
         else:
             raise_404(fileId)
 
-    def get(self, fileId=None, **kwargs):
-        return ServiceCall(self._get, **kwargs)
-
-    def _delete(self, fileId=None, **kwargs):
+    def delete(self, fileId=None, **kwargs):
         if fileId not in self._files:
             raise_404(fileId)
         del self._files[fileId]
         return {}
 
-    def delete(self, fileId=None, **kwargs):
-        return ServiceCall(self._delete, fileId=fileId, **kwargs)
-
-    def _copy(self, fileId=None, body=None, **kwargs):
+    def copy(self, fileId=None, body=None, **kwargs):
         if fileId not in self._files:
             raise_404(fileId)
         file_copy = self._files[fileId].copy()
         if body:
             for key in body.keys():
                 file_copy[key] = body[key]
-        return self._insert(body=file_copy)
-
-    def copy(self, fileId=None, **kwargs):
-        return ServiceCall(self._copy, fileId=fileId, **kwargs)
+        return self.insert(body=file_copy)
 
     def request(self, path, method='GET', **kwargs):
         """
@@ -123,9 +111,12 @@ class FilesService(object):
         :return:
         """
         if path.endswith("files"):
-            return self._list()
-
-
+            if method == 'GET':
+                return self.list()
+            elif method == 'POST':
+                return self.insert(**kwargs)
+        else:
+            raise Exception("no method for path: %s" % path)
 
 
 class PermissionsService(object):
@@ -136,6 +127,10 @@ class PermissionsService(object):
         files = files or []
         for afile in files:
             self._set_default_permissions(afile)
+
+    @property
+    def path(self):
+        return "permissions"
 
     def _set_default_permissions(self, afile):
         # TODO -- create scheme to set up current user
@@ -153,7 +148,7 @@ class PermissionsService(object):
         ]
         self._permissions[afile['id']] = default_perms
 
-    def _get(self, fileId=None, permissionId=None, **kwargs):
+    def get(self, fileId=None, permissionId=None, **kwargs):
         if fileId not in self._permissions:
             raise_404(fileId)
         perms = self._permissions[fileId]
@@ -162,10 +157,7 @@ class PermissionsService(object):
                 return permission
         raise_404(fileId, msg="Permission not found: %s" % permissionId)
 
-    def get(self, fileId=None, **kwargs):
-        return ServiceCall(self._get, fileId=fileId, **kwargs)
-
-    def _list(self, fileId=None, **kwargs):
+    def list(self, fileId=None, **kwargs):
         if fileId not in self._permissions:
             raise_404(fileId)
         response = {
@@ -175,20 +167,14 @@ class PermissionsService(object):
         }
         return response
 
-    def list(self, fileId=None, **kwargs):
-        return ServiceCall(self._list, fileId=fileId, **kwargs)
-
-    def _getIdForEmail(self, email=None, **kwargs):
+    def getIdForEmail(self, email=None, **kwargs):
         response = {
             "kind": "drive#permissionId",
             "id": str(hash(email))
         }
         return response
 
-    def getIdForEmail(self, email=None, **kwargs):
-        return ServiceCall(self._getIdForEmail, email=email, **kwargs)
-
-    def _insert(self, fileId=None, body=None, **kwargs):
+    def insert(self, fileId=None, body=None, **kwargs):
         if fileId not in self._permissions:
             raise_404(fileId)
         perm = {
@@ -205,8 +191,19 @@ class PermissionsService(object):
         self._permissions[fileId].append(perm)
         return perm
 
-    def insert(self, fileId=None, body=None, **kwargs):
-        return ServiceCall(self._insert, fileId=fileId, body=body, **kwargs)
+    def request(self, path, method='GET', **kwargs):
+        """
+        :param uri: The parsed URI of the request
+        :param method:
+        :return:
+        """
+        if path.endswith(self.path):
+            if method == 'GET':
+                return self.list()
+            elif method == 'POST':
+                return self.insert(**kwargs)
+        else:
+            raise Exception("no method for path: %s" % path)
 
 
 class ParentsService(object):
@@ -219,6 +216,10 @@ class ParentsService(object):
         for afile in files:
             self._set_default_parent(afile)
 
+    @property
+    def path(self):
+        return "parents"
+
     def _set_default_parent(self, a_file):
         default_parents = {
            "kind": "drive#parentReference",
@@ -230,7 +231,7 @@ class ParentsService(object):
           }
         self._parents[a_file['id']] = [default_parents]
 
-    def _list(self, fileId=None, **kwargs):
+    def list(self, fileId=None, **kwargs):
         if fileId not in self._parents:
             raise_404(fileId)
         response = {
@@ -239,10 +240,7 @@ class ParentsService(object):
         }
         return response
 
-    def list(self, fileId=None, **kwargs):
-        return ServiceCall(self._list, fileId=fileId, **kwargs)
-
-    def _insert(self, fileId=None, body=None, **kwargs):
+    def insert(self, fileId=None, body=None, **kwargs):
         if fileId not in self._parents:
             raise_404(fileId)
         # don't add something twice
@@ -261,10 +259,7 @@ class ParentsService(object):
         self._parents[fileId].append(parent_data)
         return parent_data
 
-    def insert(self, fileId=None, body=None, **kwargs):
-        return ServiceCall(self._insert, fileId=fileId, body=body, **kwargs)
-
-    def _delete(self, fileId=None, parentId=None, **kwargs):
+    def delete(self, fileId=None, parentId=None, **kwargs):
         if fileId not in self._parents:
             raise_404(fileId)
         parents = self._parents[fileId]
@@ -274,19 +269,25 @@ class ParentsService(object):
                 break
         return {}
 
-    def delete(self, fileId=None, parentId=None, **kwargs):
-        return ServiceCall(self._delete, fileId=fileId, parentId=parentId, **kwargs)
-
+    def request(self, path, method='GET', **kwargs):
+        """
+        :param uri: The parsed URI of the request
+        :param method:
+        :return:
+        """
+        if path.endswith(self.path):
+            return self.list()
+        else:
+            raise Exception("no method for path: %s" % path)
 
 class ServiceDirectory(object):
 
     def __init__(self, files=None, user_email="test@drivetestbed.org"):
         self._path_map = {}
         self._user_email = user_email
-        self._files = FilesService(files=files, directory=self)
-        self._path_map[self._files.path] = self._files
-        self._permissions = PermissionsService(files=files, directory=self)
-        self._parents = ParentsService(files=files, directory=self)
+        for cls in [FilesService, PermissionsService, ParentsService]:
+            serv = cls(files=files, directory=self)
+            self._path_map[serv.path] = serv
 
     def add_mapping(self, service, path):
         """
@@ -298,13 +299,13 @@ class ServiceDirectory(object):
         self._path_map[path] = service
 
     def files(self):
-        return self._files
+        return self.for_path('files')
 
     def permissions(self):
-        return self._permissions
+        return self.for_path('permissions')
 
     def parents(self):
-        return self._parents
+        return self.for_path('parents')
 
     def for_path(self, path):
         return self._path_map.get(path)

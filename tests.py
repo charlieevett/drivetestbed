@@ -1,22 +1,17 @@
 from apiclient.errors import HttpError
 from apiclient.discovery import build
 from drivetestbed.services import ServiceStub
+from drivetestbed import http
+from apiclient import discovery
 import pytest
 
 
-class TestServiceDirectory(object):
-    def test_file_service_create(self):
-        service = ServiceStub.get_service()
-        files = service.files()
-        assert files
+ONE_FILE_ID = "ONE_TEST_FILE"
 
 
 @pytest.fixture
 def service():
-    return ServiceStub.get_service()
-
-
-ONE_FILE_ID = "ONE_TEST_FILE"
+    return build('drive', 'v2', http.TestbedHttp())
 
 
 @pytest.fixture
@@ -27,7 +22,7 @@ def one_file_service():
         'mimeType': 'text/plain',
         'id': ONE_FILE_ID
     }
-    return ServiceStub.get_service(files=[test_file])
+    return build('drive', 'v2', http.TestbedHttp(files=[test_file]))
 
 
 class TestFilesService(object):
@@ -216,8 +211,6 @@ class TestParentsService(object):
 class TestClientCall(object):
 
     def test_drive_build(self):
-        from drivetestbed import http
-        from apiclient import discovery
         test_file = {
             'title': "test",
             'description': "test description",
@@ -225,10 +218,5 @@ class TestClientCall(object):
             'id': ONE_FILE_ID
         }
 
-        # TODO - implement http so that it doesn't call anything but uses saved file instead
         drive_service = discovery.build('drive', 'v2', http.TestbedHttp(files=[test_file]))
-
-        # TODO - route calls to internal service via custom http
-        files = drive_service.files().list().execute()
-        assert len(files['items']) == 1
-        assert files['items'][0]['id'] == ONE_FILE_ID
+        assert drive_service

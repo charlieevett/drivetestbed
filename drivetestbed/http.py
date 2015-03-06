@@ -1,6 +1,6 @@
 # mock http service that intercepts calls to allow Drive to work locally
 import json
-from urlparse import urlparse
+from urlparse import urlparse, parse_qs
 from httplib2 import Response
 from drivetestbed.services import ServiceDirectory
 
@@ -26,6 +26,15 @@ class TestbedHttp(object):
         else:
             path = parsed_uri.path.split("/drive/v2/")[1]
             service = self._services.for_path(path)
-            data = service.request(path, parsed_uri.query)
+
+            query_params = parse_qs(parsed_uri.query)
+            # unwrap single value params from list
+            for key in query_params.keys():
+                if len(query_params[key]) == 1:
+                    query_params[key] = query_params[key][0]
+
+            if body:
+                body = json.loads(body)
+            data = service.request(path, method=method, body=body, **query_params)
             resp = Response({'status': 200, 'reason': 'OK'})
             return (resp, json.dumps(data))
