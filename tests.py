@@ -216,24 +216,19 @@ class TestParentsService(object):
 class TestClientCall(object):
 
     def test_drive_build(self):
-        from oauth2client import client
-        import webbrowser
-        import httplib2
+        from drivetestbed import http
         from apiclient import discovery
+        test_file = {
+            'title': "test",
+            'description': "test description",
+            'mimeType': 'text/plain',
+            'id': ONE_FILE_ID
+        }
 
-        flow = client.flow_from_clientsecrets(
-            'client.json',
-            scope='https://www.googleapis.com/auth/drive.metadata.readonly',
-            redirect_uri='urn:ietf:wg:oauth:2.0:oob')
-        auth_uri = flow.step1_get_authorize_url()
-        webbrowser.open(auth_uri)
+        # TODO - implement http so that it doesn't call anything but uses saved file instead
+        drive_service = discovery.build('drive', 'v2', http.TestbedHttp(files=[test_file]))
 
-        auth_code = raw_input('Enter the auth code: ')
-
-        credentials = flow.step2_exchange(auth_code)
-        http_auth = credentials.authorize(httplib2.Http())
-
-        drive_service = discovery.build('drive', 'v2', http_auth)
+        # TODO - route calls to internal service via custom http
         files = drive_service.files().list().execute()
-        for f in files['items']:
-            print f['title']
+        assert len(files['items']) == 1
+        assert files['items'][0]['id'] == ONE_FILE_ID

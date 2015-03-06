@@ -48,6 +48,7 @@ class FilesService(object):
 
     def __init__(self, files=None, directory=None, user_email="test@gmail.com"):
         self._files = {}
+        self.path = "files"
         files = files or []
         for afile in files:
             if 'id' not in afile:
@@ -114,6 +115,17 @@ class FilesService(object):
 
     def copy(self, fileId=None, **kwargs):
         return ServiceCall(self._copy, fileId=fileId, **kwargs)
+
+    def request(self, path, method='GET', **kwargs):
+        """
+        :param uri: The parsed URI of the request
+        :param method:
+        :return:
+        """
+        if path.endswith("files"):
+            return self._list()
+
+
 
 
 class PermissionsService(object):
@@ -269,10 +281,21 @@ class ParentsService(object):
 class ServiceDirectory(object):
 
     def __init__(self, files=None, user_email="test@drivetestbed.org"):
+        self._path_map = {}
         self._user_email = user_email
         self._files = FilesService(files=files, directory=self)
+        self._path_map[self._files.path] = self._files
         self._permissions = PermissionsService(files=files, directory=self)
         self._parents = ParentsService(files=files, directory=self)
+
+    def add_mapping(self, service, path):
+        """
+        Callback from service to set up request path that the service responds to
+        :param service:
+        :param path:
+        :return:
+        """
+        self._path_map[path] = service
 
     def files(self):
         return self._files
@@ -282,6 +305,9 @@ class ServiceDirectory(object):
 
     def parents(self):
         return self._parents
+
+    def for_path(self, path):
+        return self._path_map.get(path)
 
 
 class ServiceStub(object):
