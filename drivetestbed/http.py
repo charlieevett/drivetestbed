@@ -5,17 +5,16 @@ from httplib2 import Response
 from drivetestbed.services import ServiceDirectory
 from routes import Mapper
 
+
 class TestbedHttp(object):
 
     def __init__(self, files=None):
         self._services = ServiceDirectory(files)
 
     def request(self, uri, method="GET", body=None, **kwargs):
-        # figure out how to dispatch the URL
-        # TODO -- look into setting up a Flask app or something to do routing
-
         parsed_uri = urlparse(uri)
         if 'discovery' in parsed_uri.path:
+            # TODO -- use Routes for discovery service as well
             resp = Response({'status': 200, 'reason': 'OK'})
             fp = file("drivetestbed/schema.json", 'r')
             try:
@@ -33,9 +32,6 @@ class TestbedHttp(object):
             self._map = map
             return (resp, content)
         else:
-            # TODO -- create a URL -> ID map from the json schema and then map request to ID
-            # then just pass the service endpoint ID to the service
-
             environ = {'REQUEST_METHOD': method}
             matched = self._map.match(parsed_uri.path, environ=environ)
             if matched:
