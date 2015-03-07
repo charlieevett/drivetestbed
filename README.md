@@ -19,3 +19,11 @@ Currently the following services are at some stage of support:
 ## Integrating into your tests
 
 Still trying to figure this out.
+
+## Dependencies
+
+Need to put together a build with requirements.txt
+Until then, you need:
+
+    pip install routes
+    pip install google-api-python-client

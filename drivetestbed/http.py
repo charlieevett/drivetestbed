@@ -3,7 +3,7 @@ import json
 from urlparse import urlparse, parse_qs
 from httplib2 import Response
 from drivetestbed.services import ServiceDirectory
-
+from routes import Mapper
 
 class TestbedHttp(object):
 
@@ -22,19 +22,41 @@ class TestbedHttp(object):
                 content = fp.read()
             finally:
               fp.close()
+            schema = json.loads(content)
+            path_dict = {}
+            map = Mapper()
+            with map.submapper(path_prefix="/drive/v2/") as m:
+                for r_name, r_data in schema['resources'].iteritems():
+                    for meth_name, meth_data in r_data['methods'].iteritems():
+                        m.connect(meth_data['path'], conditions={'method': [meth_data['httpMethod']]},
+                                    controller=r_name, action=meth_name)
+            self._map = map
             return (resp, content)
         else:
-            path = parsed_uri.path.split("/drive/v2/")[1]
-            service = self._services.for_path(path)
+            # TODO -- create a URL -> ID map from the json schema and then map request to ID
+            # then just pass the service endpoint ID to the service
 
-            query_params = parse_qs(parsed_uri.query)
-            # unwrap single value params from list
-            for key in query_params.keys():
-                if len(query_params[key]) == 1:
-                    query_params[key] = query_params[key][0]
+            environ = {'REQUEST_METHOD': method}
+            matched = self._map.match(parsed_uri.path, environ=environ)
+            if matched:
+                query_params = parse_qs(parsed_uri.query)
+                # unwrap single value params from list
+                for key in query_params.keys():
+                    if len(query_params[key]) == 1:
+                        query_params[key] = query_params[key][0]
 
-            if body:
-                body = json.loads(body)
-            data = service.request(path, method=method, body=body, **query_params)
-            resp = Response({'status': 200, 'reason': 'OK'})
-            return (resp, json.dumps(data))
+                if body:
+                    query_params['body'] = json.loads(body)
+                service = self._services.for_name(matched['controller'])
+                action_func = getattr(service, matched['action'])
+                if action_func:
+                    del matched['controller']
+                    del matched['action']
+                    query_params.update(matched)
+                    data = action_func(**query_params)
+                else:
+                    return (Response({'status': 404, 'reason': 'No such action: %s' % matched['action']}), "")
+                resp = Response({'status': 200, 'reason': 'OK'})
+                return (resp, json.dumps(data))
+            else:
+                return (Response({'status': 404, 'reason': 'Bad request'}), "")

@@ -59,6 +59,10 @@ class FilesService(object):
     def path(self):
         return "files"
 
+    @property
+    def name(self):
+        return "files"
+
     def list(self, **kwargs):
         response = {
             "kind": "drive#fileList",
@@ -130,6 +134,10 @@ class PermissionsService(object):
 
     @property
     def path(self):
+        return "permissions"
+
+    @property
+    def name(self):
         return "permissions"
 
     def _set_default_permissions(self, afile):
@@ -220,6 +228,10 @@ class ParentsService(object):
     def path(self):
         return "parents"
 
+    @property
+    def name(self):
+        return "parents"
+
     def _set_default_parent(self, a_file):
         default_parents = {
            "kind": "drive#parentReference",
@@ -284,10 +296,12 @@ class ServiceDirectory(object):
 
     def __init__(self, files=None, user_email="test@drivetestbed.org"):
         self._path_map = {}
+        self._name_map = {}
         self._user_email = user_email
         for cls in [FilesService, PermissionsService, ParentsService]:
             serv = cls(files=files, directory=self)
             self._path_map[serv.path] = serv
+            self._name_map[serv.name] = serv
 
     def add_mapping(self, service, path):
         """
@@ -306,6 +320,9 @@ class ServiceDirectory(object):
 
     def parents(self):
         return self.for_path('parents')
+
+    def for_name(self, name):
+        return self._name_map[name]
 
     def for_path(self, path):
         return self._path_map.get(path)
