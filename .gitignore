@@ -2,3 +2,4 @@
 .idea
 iso8601
 client.json
+*.egg-info/
