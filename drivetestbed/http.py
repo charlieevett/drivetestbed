@@ -8,7 +8,7 @@ from routes import Mapper
 
 class TestbedHttp(object):
 
-    def __init__(self, files=None):
+    def __init__(self, files=None, **kwargs):
         self._services = ServiceDirectory(files)
 
     def request(self, uri, method="GET", body=None, **kwargs):
