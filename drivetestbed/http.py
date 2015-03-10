@@ -1,5 +1,6 @@
 # mock http service that intercepts calls to allow Drive to work locally
 import json
+import os
 from urlparse import urlparse, parse_qs
 from httplib2 import Response
 from drivetestbed.services import ServiceDirectory
@@ -16,7 +17,8 @@ class TestbedHttp(object):
         if 'discovery' in parsed_uri.path:
             # TODO -- use Routes for discovery service as well
             resp = Response({'status': 200, 'reason': 'OK'})
-            fp = file("drivetestbed/schema.json", 'r')
+            dirname = os.path.dirname(os.path.realpath(__file__))
+            fp = file("%s/schema.json" % dirname, 'r')
             try:
                 content = fp.read()
             finally:
