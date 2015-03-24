@@ -220,3 +220,26 @@ class TestClientCall(object):
 
         drive_service = discovery.build('drive', 'v2', http.TestbedHttp(files=[test_file]))
         assert drive_service
+
+
+class TestGlobalService(object):
+
+    def test_create_global_service(self):
+
+        test_file = {
+            'title': "test global",
+            'description': "test global description",
+            'mimeType': 'text/plain',
+            'id': "GLOBAL_FILE_ID"
+        }
+        try:
+            http.TestbedHttp.setup_global_service(files=[test_file])
+            drive_service = discovery.build('drive', 'v2', http.TestbedHttp())
+            response = drive_service.files().list().execute()
+            assert response
+            assert 'items' in response
+            assert len(response['items']) == 1
+            assert response['items'][0]['id'] == "GLOBAL_FILE_ID"
+        finally:
+            http.TestbedHttp.teardown_global_service()
+

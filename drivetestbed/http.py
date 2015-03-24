@@ -9,8 +9,21 @@ from routes import Mapper
 
 class TestbedHttp(object):
 
+    default_service = None
+
+    @classmethod
+    def setup_global_service(cls, files=None):
+        cls.default_service = ServiceDirectory(files=files)
+
+    @classmethod
+    def teardown_global_service(cls):
+        cls.default_service = None
+
     def __init__(self, files=None, **kwargs):
-        self._services = ServiceDirectory(files)
+        if TestbedHttp.default_service:
+            self._services = self.default_service
+        else:
+            self._services = ServiceDirectory(files)
 
     def request(self, uri, method="GET", body=None, **kwargs):
         parsed_uri = urlparse(uri)
