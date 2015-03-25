@@ -1,5 +1,6 @@
 from apiclient.errors import HttpError
 from apiclient.discovery import build
+import logging
 from drivetestbed.services import ServiceStub
 from drivetestbed import http
 from apiclient import discovery
@@ -165,6 +166,17 @@ class TestPermissionsService(object):
         response = one_file_service.permissions().list(fileId=ONE_FILE_ID).execute()
         assert len(response['items']) == 2
         assert [perm for perm in response['items'] if perm['type'] == 'anyone' and perm['role'] == 'reader']
+
+    def test_delete_permission(self, one_file_service):
+        new_permission = {
+            'value': 'drivetestbed.org',
+            'type': 'domain',
+            'role': 'reader'
+        }
+        response = one_file_service.permissions().insert(fileId=ONE_FILE_ID, body=new_permission).execute()
+        one_file_service.permissions().delete(fileId=ONE_FILE_ID, permissionId=response['id']).execute()
+        response = one_file_service.permissions().list(fileId=ONE_FILE_ID).execute()
+        assert len(response['items']) == 1
 
 
 class TestFilesAndPermissions(object):

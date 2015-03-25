@@ -1,4 +1,5 @@
 import base64
+import logging
 import uuid
 from apiclient.errors import HttpError
 from httplib2 import Response
@@ -165,6 +166,19 @@ class PermissionsService(object):
                 return permission
         raise_404(fileId, msg="Permission not found: %s" % permissionId)
 
+    def delete(self, fileId=None, permissionId=None):
+        if fileId not in self._permissions:
+            raise_404(fileId)
+        perms = self._permissions[fileId]
+        found = None
+        for permission in perms:
+            if permission['id'] == permissionId:
+                found = perms.remove(permission)
+                break
+        if found:
+            perms.remove(found)
+        return {}
+
     def list(self, fileId=None, **kwargs):
         if fileId not in self._permissions:
             raise_404(fileId)
@@ -186,7 +200,7 @@ class PermissionsService(object):
         if fileId not in self._permissions:
             raise_404(fileId)
         # TODO -- hash value into ID
-        id = body.get('value')
+        id = body.get('value', 'anyone')
         if body['type'] == 'user' or body['type'] == 'group':
             domain = body['value'].split('@')[1]
             email = body['value']
