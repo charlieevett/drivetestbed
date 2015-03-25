@@ -185,15 +185,26 @@ class PermissionsService(object):
     def insert(self, fileId=None, body=None, **kwargs):
         if fileId not in self._permissions:
             raise_404(fileId)
+        # TODO -- hash value into ID
+        id = body.get('value')
+        if body['type'] == 'user' or body['type'] == 'group':
+            domain = body['value'].split('@')[1]
+            email = body['value']
+        elif body['type'] == 'domain':
+            domain = body['value']
+            email = ""
+        else:
+            domain = ""
+            email = ""
         perm = {
                "kind": "drive#permission",
                "etag": "Lie3Y624-6bAlCGsnUSYyb6P-dU/k6w2imYTYLSrsTHqeiu6HpWiCVQ",
-               "id": get_a_uuid(),
+               "id": id,
                "name": "Test User",
-               "emailAddress": self._directory._user_email,
-               "domain": "testers.com",
-               "role": "owner",
-               "type": "user",
+               "emailAddress": email,
+               "domain": domain,
+               "role": body['role'],
+               "type": body['type'],
             }
 
         self._permissions[fileId].append(perm)

@@ -126,6 +126,45 @@ class TestPermissionsService(object):
         assert response.get('kind') == 'drive#permission'
         response = one_file_service.permissions().list(fileId=ONE_FILE_ID).execute()
         assert len(response['items']) == 2
+        assert [perm for perm in response['items'] if perm['emailAddress'] == 'test_reader@drivetestbed.org' and
+                perm['type'] == 'user' and perm['role'] == 'reader']
+
+    def test_insert_group_permission(self, one_file_service):
+        new_permission = {
+            'value': 'group@drivetestbed.org',
+            'type': 'group',
+            'role': 'reader'
+        }
+        response = one_file_service.permissions().insert(fileId=ONE_FILE_ID, body=new_permission).execute()
+        assert response.get('kind') == 'drive#permission'
+        response = one_file_service.permissions().list(fileId=ONE_FILE_ID).execute()
+        assert len(response['items']) == 2
+        assert [perm for perm in response['items'] if perm['emailAddress'] == 'group@drivetestbed.org' and
+                perm['type'] == 'group' and perm['role'] == 'reader']
+
+    def test_insert_domain_permission(self, one_file_service):
+        new_permission = {
+            'value': 'drivetestbed.org',
+            'type': 'domain',
+            'role': 'reader'
+        }
+        response = one_file_service.permissions().insert(fileId=ONE_FILE_ID, body=new_permission).execute()
+        assert response.get('kind') == 'drive#permission'
+        response = one_file_service.permissions().list(fileId=ONE_FILE_ID).execute()
+        assert len(response['items']) == 2
+        assert [perm for perm in response['items'] if perm['domain'] == 'drivetestbed.org' and
+                perm['type'] == 'domain' and perm['role'] == 'reader']
+
+    def test_insert_all_permission(self, one_file_service):
+        new_permission = {
+            'type': 'anyone',
+            'role': 'reader'
+        }
+        response = one_file_service.permissions().insert(fileId=ONE_FILE_ID, body=new_permission).execute()
+        assert response.get('kind') == 'drive#permission'
+        response = one_file_service.permissions().list(fileId=ONE_FILE_ID).execute()
+        assert len(response['items']) == 2
+        assert [perm for perm in response['items'] if perm['type'] == 'anyone' and perm['role'] == 'reader']
 
 
 class TestFilesAndPermissions(object):
