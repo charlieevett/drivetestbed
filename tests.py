@@ -1,7 +1,5 @@
 from apiclient.errors import HttpError
 from apiclient.discovery import build
-import logging
-from drivetestbed.services import ServiceStub
 from drivetestbed import http
 from apiclient import discovery
 import pytest
