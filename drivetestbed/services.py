@@ -79,7 +79,8 @@ class FilesService(object):
             "kind": "drive#file",
             "title": body.get('title'),
             "description": body.get("description"),
-            "mimeType": body.get("mimeType", "application/octet-stream")
+            "mimeType": body.get("mimeType", "application/octet-stream"),
+            'owners': []
         }
         response['id'] = get_a_uuid()
         self._files[response['id']] = response
@@ -142,9 +143,7 @@ class PermissionsService(object):
         return "permissions"
 
     def _set_default_permissions(self, afile):
-        # TODO -- create scheme to set up current user
-        default_perms = [
-            {
+        default_owner_perm = {
                "kind": "drive#permission",
                "etag": "Lie3Y624-6bAlCGsnUSYyb6P-dU/k6w2imYTYLSrsTHqeiu6HpWiCVQ",
                "id": "11519106257625907838",
@@ -153,9 +152,23 @@ class PermissionsService(object):
                "domain": "testers.com",
                "role": "owner",
                "type": "user",
-            }
-        ]
+        }
+
+        default_perms = [ default_owner_perm ]
         self._permissions[afile['id']] = default_perms
+        owner_data = {
+              "kind": "drive#user",
+              "displayName": "Test User",
+              "picture": {
+                "url": "http://stub"
+              },
+              "isAuthenticatedUser": True,
+              "permissionId": default_owner_perm['id'],
+              "emailAddress": self._directory._user_email
+        }
+        if 'owners' not in afile:
+            afile['owners'] = []
+        afile['owners'].append(owner_data)
 
     def get(self, fileId=None, permissionId=None, **kwargs):
         if fileId not in self._permissions:

@@ -88,6 +88,21 @@ class TestFilesService(object):
         with pytest.raises(HttpError):
             response = service.files().copy(fileId=ONE_FILE_ID, body=copied_file).execute()
 
+    def test_create_with_user(self):
+        service = build('drive', 'v2', http.TestbedHttp(files=[], user_email="usertest@drivetestbed.org"))
+        body = {
+            'title': "test",
+            'description': "test description",
+            'mimeType': 'text/plain'
+        }
+        insert_response = service.files().insert(body=body).execute()
+
+        response = service.files().list().execute()
+        assert len(response['items']) == 1
+        new_file = response['items'][0]
+        assert len(new_file['owners']) == 1
+        assert new_file['owners'][0]['emailAddress'] == "usertest@drivetestbed.org"
+
 
 class TestPermissionsService(object):
     def test_get_permissions_stub(self, service):

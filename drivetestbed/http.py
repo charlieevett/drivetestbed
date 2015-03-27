@@ -12,18 +12,18 @@ class TestbedHttp(object):
     default_service = None
 
     @classmethod
-    def setup_global_service(cls, files=None):
-        cls.default_service = ServiceDirectory(files=files)
+    def setup_global_service(cls, files=None, user_email=None):
+        cls.default_service = ServiceDirectory(files=files, user_email=user_email)
 
     @classmethod
     def teardown_global_service(cls):
         cls.default_service = None
 
-    def __init__(self, files=None, **kwargs):
+    def __init__(self, files=None, user_email=None, **kwargs):
         if TestbedHttp.default_service:
             self._services = self.default_service
         else:
-            self._services = ServiceDirectory(files)
+            self._services = ServiceDirectory(files, user_email)
 
     def request(self, uri, method="GET", body=None, **kwargs):
         parsed_uri = urlparse(uri)
